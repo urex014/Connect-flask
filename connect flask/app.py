@@ -1,9 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from werkzeug.utils import secure_filename
+from flask_socketio import SocketIO, send, join_room, leave_room
 import os
 
 # Initialize Flask app and extensions
@@ -11,17 +12,25 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key_here'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
+
+# Initialize extensions
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+socketio = SocketIO(app)
 
 # User Model
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
-    profile_photo = db.Column(db.String(150), default = 'default.jpg')
+    profile_photo = db.Column(db.String(150), default='default.jpg')
+    
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Message Model
 class Message(db.Model):
@@ -90,11 +99,10 @@ def chat_list():
     user_data = []
     query = request.form.get('search', '')
 
-    # Search logic
     if query:
-        users = User.query.filter(User.username.contains(query), User.id != current_user.id).all()
+        users = User.query.filter(User.username.ilike(f"%{query}%"), User.id != current_user.id).all()
     else:
-        # Default: Fetch users who have exchanged messages with current user
+        # Fetch users who have exchanged messages with current user
         subquery = db.session.query(
             db.func.max(Message.timestamp).label('latest_timestamp'),
             db.case(
@@ -103,14 +111,17 @@ def chat_list():
             ).label('user_id')
         ).filter(
             (Message.sender_id == current_user.id) | (Message.recipient_id == current_user.id)
-        ).group_by('user_id').subquery()
+        ).group_by(db.case(
+            (Message.sender_id == current_user.id, Message.recipient_id),
+            else_=Message.sender_id
+        )).subquery()
 
         users = db.session.query(User, subquery.c.latest_timestamp).join(
             subquery, User.id == subquery.c.user_id
         ).order_by(subquery.c.latest_timestamp.desc()).all()
 
-    # Map user data
-    for user in users:
+    for user_entry in users:
+        user = user_entry if isinstance(user_entry, User) else user_entry[0]
         last_message = Message.query.filter(
             ((Message.sender_id == current_user.id) & (Message.recipient_id == user.id)) |
             ((Message.sender_id == user.id) & (Message.recipient_id == current_user.id))
@@ -125,28 +136,53 @@ def chat_list():
 
     return render_template('chat_list.html', users=user_data)
 
+@app.route('/search_users')
+@login_required
+def search_users():
+    query = request.args.get('q', '').strip().lower()
 
+    if query:
+        # Search users based on the query, excluding the current user
+        users = User.query.filter(
+            User.username.ilike(f"%{query}%"), User.id != current_user.id
+        ).all()
+    else:
+        users = []  # If no query is provided, return an empty list
+
+    # Return the list of users as JSON
+    user_data = [
+        {
+            "id": user.id,
+            "username": user.username,
+            "profile_photo": user.profile_photo,
+        }
+        for user in users
+    ]
+
+    return jsonify(user_data)
 
 
 @app.route('/chat/<int:user_id>', methods=['GET', 'POST'])
 @login_required
 def chat(user_id):
-    other_user = User.query.get_or_404(user_id)  # Ensure other_user is loaded
+    other_user = User.query.get_or_404(user_id)
 
     if request.method == 'POST':
         content = request.form.get('message', ' ')
         if content.strip():
-            # Create a new message
             new_message = Message(sender_id=current_user.id, recipient_id=user_id, content=content)
             db.session.add(new_message)
-
-            # Update the recipient's last message preview
-            other_user.last_message = content
             db.session.commit()
 
-        return redirect(url_for('chat', user_id=user_id))
+            # Emit message using SocketIO
+            socketio.emit('new_message', {
+                'message': content,
+                'sender_id': current_user.id,
+                'recipient_id': user_id,
+                'username': current_user.username,
+                'timestamp': new_message.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            }, room=str(user_id))
 
-    # Fetch messages between the current user and the other user
     messages = Message.query.filter(
         ((Message.sender_id == current_user.id) & (Message.recipient_id == user_id)) |
         ((Message.sender_id == user_id) & (Message.recipient_id == current_user.id))
@@ -154,51 +190,60 @@ def chat(user_id):
 
     return render_template('chat.html', recipient=other_user, messages=messages)
 
-@app.route('/search_users', methods=['GET'])
+@app.route('/settings')
 @login_required
-def search_users():
-    query = request.args.get('q', '')
-    users = User.query.filter(User.username.contains(query), User.id != current_user.id).all()
-    return jsonify([{'id': user.id, 'username': user.username} for user in users])
-
+def settings():
+    return render_template('settings.html')
 
 @app.route('/update_profile_photo', methods=['POST'])
 @login_required
 def update_profile_photo():
-    if 'profile_photo' in request.files:
-        profile_photo = request.files['profile_photo']
-        if profile_photo:
-            filename = secure_filename(profile_photo.filename)
-            filepath = os.path.join('static/uploads', filename)
-            profile_photo.save(filepath)
+    if 'file' not in request.files:
+        flash('No file part')
+        return redirect(url_for('settings'))
+    
+    file = request.files['file']
+    
+    if file.filename == '':
+        flash('No selected file')
+        return redirect(url_for('settings'))
+    
+    if file and allowed_file(file.filename):
+        # Secure the filename and save it to the upload folder
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        # Save the file
+        file.save(filepath)
 
-            # Update the user's profile photo in the database
-            current_user.profile_photo = filename
-            db.session.commit()
+        # Update the current user's profile_photo field in the database
+        current_user.profile_photo = filename
+        db.session.commit()
 
+        flash('Profile photo updated successfully!')
+        return redirect(url_for('settings'))
+    
+    flash('Invalid file type. Please upload an image.')
     return redirect(url_for('settings'))
 
 
+@socketio.on('join_room')
+def on_join(data):
+    room = str(data['room'])
+    join_room(room)
+    print(f"User has joined room: {room}")
 
-@app.route('/settings', methods=['GET', 'POST'])
-@login_required
-def settings():
-    if request.method == 'POST':
-        if 'profile_photo' in request.files:
-            profile_photo = request.files['profile_photo']
-            if profile_photo:
-                filename = secure_filename(profile_photo.filename)
-                filepath = os.path.join('static/uploads', filename)
-                profile_photo.save(filepath)
+@socketio.on('leave_room')
+def on_leave(data):
+    room = str(data['room'])
+    leave_room(room)
+    print(f"User has left room: {room}")
 
-                # Update the user's profile photo URL in the database
-                current_user.profile_photo = filename
-                db.session.commit()
-
-        return redirect(url_for('settings'))
-
-    return render_template('settings.html')
-
+@socketio.on('new_message')
+def handle_new_message(data):
+    room = str(data['recipient_id'])
+    send(data, room=room)
+    print(f"New message from {data['username']} to room {room}")
 
 @app.route('/logout')
 @login_required
@@ -209,4 +254,4 @@ def logout():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    socketio.run(app, debug=True)
