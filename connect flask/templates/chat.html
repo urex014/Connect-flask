@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #000; /* Black background */
+            margin: 0;
+            padding: 0;
+            color: white; /* White text */
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #1c1c1c; /* Dark gray background for the chat container */
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            height: 90vh; /* Make chat container height responsive */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #00AEEF; /* Light blue header */
+            position: relative;
+        }
+
+        .back-button {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            background-color: #007bff;
+            color: #fff;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .back-button:hover {
+            background-color: #0056b3;
+        }
+
+        .message-bubbles {
+            flex-grow: 1;
+            max-height: 70%; /* Limit the height of the chat bubbles */
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding-right: 10px; /* Add space for scrollbar */
+        }
+
+        .bubble {
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 15px;
+            max-width: 60%; /* Shorter width for the message bubbles */
+            word-wrap: break-word; /* Allow long words to break */
+        }
+
+        .bubble.sender {
+            background-color: #007bff; /* Blue for sender */
+            color: #fff;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .bubble.recipient {
+            background-color: #fff; /* White for receiver */
+            color: #333;
+            margin-right: auto;
+            text-align: left;
+        }
+
+        .message-form {
+            display: flex;
+            align-items: center;
+        }
+
+        .message-form input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-right: 10px;
+            background-color: #333; /* Dark input background */
+            color: white; /* White text for input */
+        }
+
+        .message-form button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .message-form button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Make the design responsive */
+        @media (max-width: 768px) {
+            .chat-container {
+                width: 90%;
+                padding: 15px;
+            }
+
+            .chat-header {
+                font-size: 1.2rem;
+            }
+
+            .message-form input[type="text"] {
+                font-size: 1rem;
+            }
+
+            .message-form button {
+                font-size: 1rem;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <!-- Back Button with Left Arrow -->
+            <a href="{{ url_for('chat_list') }}">
+                <button class="back-button">&larr;</button>
+            </a>
+
+            Chat with {{ recipient.username }}
+        </div>
+
+        <!-- Chat bubbles -->
+        <div class="message-bubbles">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="bubble {{ 'sender' if message.sender_id == current_user.id else 'recipient' }}">
+                        {{ message.content }}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>No messages yet. Start a conversation!</p>
+            {% endif %}
+        </div>
+
+        <!-- Message form -->
+        <form class="message-form" method="POST">
+            <input type="text" name="message" placeholder="Type a message..." required>
+            <button type="submit">Send</button>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect</title>
+    <style>
+        /* Fullscreen layout */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: #000; /* Black background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        .auth-container {
+            text-align: center;
+            width: 100%;
+        }
+
+        /* Logo styling */
+        .logo {
+            width: 150px;
+            height: 150px;
+            margin-bottom: 20px;
+        }
+
+        /* CONNECT text styling */
+        .title {
+            color: #00AEEF; /* Light blue */
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 40px;
+        }
+
+        /* Button styling */
+        .button {
+            width: 70%;
+            max-width: 300px;
+            padding: 15px 0;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 25px;
+            margin: 10px auto;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .signup {
+            background-color: #00AEEF; /* Light blue */
+            color: #fff;
+        }
+
+        .login {
+            background-color: #E53935; /* Red */
+            color: #fff;
+        }
+
+        /* Button hover effect */
+        .button:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <!-- Logo -->
+        <img src="{{ url_for('static', filename='connect_logo.png') }}" alt="Logo" class="logo">
+        
+        <!-- CONNECT Title -->
+        <p class="title">CONNECT</p>
+        
+        <!-- Buttons -->
+        <button class="button signup" onclick="window.location.href='/signup';">Sign Up</button>
+        <button class="button login" onclick="window.location.href='/login';">Login</button>
+    </div>
+</body>
+</html>

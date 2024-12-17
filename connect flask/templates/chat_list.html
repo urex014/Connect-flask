@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat List</title>
+    <style>
+        /* Fullscreen layout */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: #000; /* Black background */
+            color: white; /* White text */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background-color: #333; /* Dark gray background for container */
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            text-align: left;
+            height: 90%; /* Adjust container height */
+            overflow-y: auto; /* Enable scrolling for the list */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Title styling */
+        h1 {
+            color:rgb(213, 244, 255); /* Light blue */
+            font-size: 2.0rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 30px;
+        }
+
+        /* Search bar styling */
+        .search-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .search-bar input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            display: none;  /* Initially hidden */
+            transition: width 0.3s ease;
+        }
+
+        .search-bar input[type="text"].active {
+            display: block;
+            width: 100%;
+        }
+
+        .search-bar button {
+            padding: 10px;
+            background-color: #00AEEF; /* Light blue */
+            color: #fff;
+            border: none;
+            border-radius: 25px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+        .search-bar button:hover {
+            background-color: #007bff;
+        }
+
+        .search-bar .search-icon {
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        /* Chat list styling */
+        .chat-list .message-preview {
+            font-size: 0.9rem; /* Smaller font size for message preview */
+            color: #bbb; /* Lighter gray for the preview */
+            margin-top: 5px;
+            white-space: nowrap; /* Prevent long messages from wrapping */
+            overflow: hidden;
+            text-overflow: ellipsis; /* Truncate text with ellipsis */
+        }
+
+        .chat-list li {
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            flex-direction: row; /* Align username and message status in a row */
+            justify-content: space-between; /* Ensure space between elements */
+            align-items: center; /* Vertically center elements */
+        }
+
+        .chat-list li {
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            flex-direction: column; /* Stack the elements vertically */
+            justify-content: flex-start; /* Align the items to the top */
+            align-items: flex-start; /* Align items to the left */
+        }
+
+        .chat-list a {
+            text-decoration: none;
+            color: #fff; /* White text */
+            font-weight: bold;
+            display: flex;
+            flex-direction: row; /* Align profile photo, username, and message preview in a row */
+            width: 100%;
+            align-items: center; /* Align items in the row */
+        }
+
+        /* Hover effect for chat links */
+        .chat-list a:hover {
+            background-color: #444; /* Slightly lighter background on hover */
+            border-radius: 5px;
+        }
+
+        /* Style for user chat status (green dot) */
+        .chat-list .status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: green; /* Green dot for online status */
+            margin-right: 15px; /* Space between status and username */
+        }
+
+        /* Profile photo */
+        .chat-list .profile-photo {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 20px; /* Space between photo and username */
+            object-fit: cover; /* Make sure image fits inside the circle */
+        }
+
+        .chat-list .username {
+            font-weight: bold;
+            color: #fff;
+            font-size: 1rem;
+            margin-bottom: 0; /* Remove space below the username */
+        }
+        
+
+        /* Message Preview styling */
+        .chat-list .message-preview {
+            font-size: 0.9rem; /* Smaller font size for message preview */
+            color: #bbb; /* Lighter gray for the preview */
+            margin-top: 0; /* Remove top margin */
+            white-space: normal; /* Allow text to wrap */
+            overflow: hidden; /* Hide overflowed content */
+            text-overflow: ellipsis; /* Add ellipsis for overflowed text */
+            display: -webkit-box; /* Use WebKit for multi-line ellipsis */
+            -webkit-line-clamp: 3; /* Limit the message preview to 3 lines */
+            -webkit-box-orient: vertical; /* Set orientation to vertical */
+        }
+
+        /* Styling for message status (dots) */
+        .message-status {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end; /* Align dots to the extreme right */
+            margin-top: 5px;
+            width: 100%;
+        }
+
+        .message-status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: white;
+            margin-left: 5px; /* Add some space between dots */
+        }
+
+        .message-status .dot.opened {
+            background-color: #bbb; /* Lighter white for opened message */
+        }
+
+        .chat-list a:hover {
+            color: #00AEEF; /* Change color to blue on hover */
+        }
+        /* Profile Header Styling */
+.profile-header {
+    display: flex;
+    align-items: center; /* Vertically center profile picture and username */
+    margin-bottom: 20px; /* Add some space after profile section */
+}
+
+.profile-header .profile-photo {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%; /* Make the image circular */
+    margin-right: 15px; /* Space between profile picture and username */
+    object-fit: cover; /* Ensure the image fits the container */
+}
+
+.profile-header .username {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #fff; /* White color for username */
+    text-align: left; /* Align username to the left */
+}
+/* Settings Icon Styling */
+.settings-icon {
+    position: fixed; /* Fixed position to stay at the bottom-right */
+    bottom: 20px; /* Distance from the bottom */
+    right: 20px; /* Distance from the right */
+    font-size: 1.5rem; /* Larger size for the icon */
+    cursor: pointer;
+    background-color: #00AEEF; /* Light blue background */
+    color: #fff; /* White icon */
+    padding: 15px; /* Padding around the icon */
+    border-radius: 50%; /* Circular shape */
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); /* Add shadow for floating effect */
+    transition: background-color 0.3s ease, transform 0.2s ease; /* Smooth transitions */
+}
+
+
+.settings-icon a {
+    text-decoration: none;
+    color: #fff; /* Keep icon white */
+}
+.settings-icon:hover {
+    background-color: #007bff; /* Slightly darker blue on hover */
+    transform: scale(1.1); /* Slight scale-up effect on hover */
+}
+
+.settings-icon a:hover {
+    color: #00AEEF; /* Light blue on hover */
+}
+
+    </style>
+    <script>
+        function toggleSearch() {
+            const searchInput = document.getElementById("search-input");
+            searchInput.classList.toggle("active");
+            searchInput.focus();  // Focus on input when it is active
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <!-- Logged-in user's profile picture and username -->
+        <div class="profile-header">
+            <img src="{{ url_for('static', filename='uploads/' + current_user.profile_photo) }}" alt="Profile Picture" class="profile-photo">
+            <span class="username">{{ current_user.username }}</span>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-bar">
+            <span class="search-icon" onclick="toggleSearch()">🔍</span>
+            <form method="POST" class="search-form">
+                <input type="text" name="search" id="search-input" placeholder="Search users..." required>
+                <button type="submit" style="display:none;">Search</button>
+            </form>
+        </div>
+
+        <!-- Chat List -->
+        <ul class="chat-list">
+            {% for user in users %}
+            <li>
+                <a href="{{ url_for('chat', user_id=user.id) }}">
+                    <!-- Profile Photo -->
+                    <img src="{{ url_for('static', filename='uploads/' + user.profile_photo) }}" class="profile-photo">
+        
+                    <!-- Username -->
+                    <span class="username">{{ user.username }}</span>
+        
+                    <!-- Message Preview -->
+                    <span class="message-preview">
+                        {{ user.last_message[:50] }}{% if user.last_message|length > 50 %}...{% endif %}
+                    </span>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        
+    </div>
+    <!-- Settings Gear Icon -->
+    <a href="{{ url_for('settings') }}">
+        ⚙️
+    </a>
+</div>
+    </div>
+</body>
+</html>
