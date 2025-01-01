@@ -6,7 +6,7 @@
     <title>Chat List</title>
    
     <style>
-        /* General Styling */
+        
         body, html {
             margin: 0;
             padding: 0;
@@ -165,7 +165,7 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
+        <!-- Header containing search icon and other header stuff  -->
         <div class="header">
             <h1>{{ current_user.username }}</h1>
             <!-- Search Container -->
@@ -177,16 +177,16 @@
             </div>
         </div>
 
-        <!-- Chat List -->
+        <!-- the way chats appear under each other -->
         <ul class="chat-list" id="chat-list">
             {% if users %}
                 {% for user in users %}
                 <li data-username="{{ user.username }}">
                     <a href="{{ url_for('chat', user_id=user.id) }}" class="chat-link">
                         <div class="chat-info">
-                            <!-- Profile Photo -->
-                            <img src="{{ url_for('static', filename='uploads/' + user.profile_photo) }}" alt="Profile Picture" class="profile-photo">
-                            <!-- Username and Message Preview -->
+                            <!-- Profile Photo shii -->
+                            <img src="{{ url_for('static', filename='uploads/' + user.profile_photo) }}"  class="profile-photo">
+                            <!-- Username  and message under the username  -->
                             <div class="message-details">
                                 <p class="username">{{ user.username }}</p>
                                 <p class="message-preview">
@@ -210,93 +210,93 @@
     <a href="{{ url_for('settings') }}" class="settings-icon">⚙️</a>
 
     <!-- JavaScript -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const searchIcon = document.getElementById('search-icon');
-            const searchBar = document.getElementById('search-bar');
-            const chatList = document.getElementById('chat-list');
-            const noUsersFoundMessage = document.getElementById('no-users-found');
+     <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchIcon = document.getElementById('search-icon');
+        const searchBar = document.getElementById('search-bar');
+        const chatList = document.getElementById('chat-list');
+        const noUsersFoundMessage = document.getElementById('no-users-found');
     
-            // Show search bar when clicking the search icon
-            searchIcon.addEventListener('click', function () {
-                searchIcon.style.display = 'none'; // Hide the search icon
-                searchBar.style.display = 'block'; // Show the search bar
-                searchBar.focus(); // Focus the search bar
-            });
-    
-            // Function to search users when pressing Enter
-            searchBar.addEventListener('keydown', function (event) {
-                if (event.key === 'Enter') {
-                    event.preventDefault(); // Prevent form submission
-                    const query = searchBar.value.trim().toLowerCase();
-                    
-                    if (query) {
-                        // Send AJAX request to search for users
-                        fetch(`/search_users?q=${query}`)
-    .then(response => response.json())
-    .then(data => {
-        chatList.innerHTML = ''; // Clear the chat list
-        if (data.length === 0) {
-            noUsersFoundMessage.style.display = 'block'; // Show "No users found"
-        } else {
-            noUsersFoundMessage.style.display = 'none'; // Hide "No users found"
-            data.forEach(user => {
-                const li = document.createElement('li');
-                li.innerHTML = `
-                    <a href="/chat/${user.id}" class="chat-link">
-                        <div class="chat-info">
-                            <img src="/static/uploads/${user.profile_photo}" alt="Profile Picture" class="profile-photo">
-                            <div class="message-details">
-                                <p class="username">${user.username}</p>
-                            </div>
-                        </div>
-                    </a>
-                `;
-                chatList.appendChild(li);
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error fetching users:', error);
-    });
-
-                    } else {
-                        // If query is empty, clear the chat list and show all users
-                        fetch('/chat_list')
-                            .then(response => response.json())
-                            .then(data => {
-                                chatList.innerHTML = '';  // Clear the list
-                                if (data.length === 0) {
-                                    noUsersFoundMessage.style.display = 'block';  // Show "No users found"
-                                } else {
-                                    noUsersFoundMessage.style.display = 'none'; // Hide "No users found"
-                                    data.forEach(user => {
-                                        const li = document.createElement('li');
-                                        li.innerHTML = `
-                                            <a href="/chat/${user.id}" class="chat-link">
-                                                <div class="chat-info">
-                                                    <img src="/static/uploads/${user.profile_photo}" alt="Profile Picture" class="profile-photo">
-                                                    <div class="message-details">
-                                                        <p class="username">${user.username}</p>
-                                                    </div>
-                                                </div>
-                                            </a>
-                                        `;
-                                        chatList.appendChild(li);
-                                    });
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error fetching users:', error);
-                            });
-                    }
-                }
-            });
+        // Show search bar when clicking the search icon
+        searchIcon.addEventListener('click', function () {
+            searchIcon.style.display = 'none'; // Hide the search icon
+            searchBar.style.display = 'block'; // Show the search bar
+            searchBar.focus(); // Focus the search bar
         });
-    </script>
+    
+        // search when enter is pressed 
+        searchBar.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // since form submission=reload, prevent form submission
+                const query = searchBar.value.trim().toLowerCase();
+    
+                if (query) {
+                    // using ajax for search functionality
+                    fetch(`/search_users?q=${query}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            chatList.innerHTML = ''; // Clear the chat list
+                            if (data.length === 0) {
+                                noUsersFoundMessage.style.display = 'block'; // Show No users found when shit dosent add up in db
+                            } else {
+                                noUsersFoundMessage.style.display = 'none'; // Hidethe no users found when search ar input == db
+                                data.forEach(user => {
+                                    const li = document.createElement('li');
+                                    li.innerHTML = `
+                                        <a href="/chat/${user.id}" class="chat-link">
+                                            <div class="chat-info">
+                                                <img src="/static/uploads/${user.profile_photo}" alt="Profile Picture" class="profile-photo">
+                                                <div class="message-details">
+                                                    <p class="username">${user.username}</p>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    `;
+                                    chatList.appendChild(li);
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching users:', error);
+                        });
+                } else {
+                    // default chat list. when there is no search, show all the users 
+                    fetch('/chat_list')
+                        .then(response => response.json())
+                        .then(data => {
+                            chatList.innerHTML = '';  // Clear list
+                            if (data.length === 0) {
+                                noUsersFoundMessage.style.display = 'block'; //show no users 
+                            } else {
+                                noUsersFoundMessage.style.display = 'none'; //hisde no users
+                                data.forEach(user => {
+                                    const li = document.createElement('li');
+                                    li.innerHTML = `
+                                        <a href="/chat/${user.id}" class="chat-link">
+                                            <div class="chat-info">
+                                                <img src="/static/uploads/${user.profile_photo}" alt="Profile Picture" class="profile-photo">
+                                                <div class="message-details">
+                                                    <p class="username">${user.username}</p>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    `;
+                                    chatList.appendChild(li);
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching users:', error);
+                        });
+                }
+            }
+        });
+    });
+</script>
     
     
     
     
 </body>
 </html>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js"></script>

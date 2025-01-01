@@ -1,0 +1,91 @@
+<!-- templates/splash.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect</title>
+    <style>
+        /* Fullscreen layout */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 120%;
+            background-color: #000; /* Black background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .splash-container {
+            text-align: center; 
+            width:100%;
+            height:80%;
+            
+        }
+
+        /* Logo styling */
+        .logo {
+            width: 150px; /* Adjust size */
+            height: 150px;
+            margin-bottom: 20px;
+            
+        }
+
+        /* CONNECT text styling */
+        .title {
+            color: #00AEEF; /* Light blue text */
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0;
+        }
+        .button {
+            width: 70%;
+            max-width: 300px;
+            padding: 15px 0;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 25px;
+            margin: 10px auto;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+
+        
+        
+    </style>
+</head>
+<body>
+    <div class="splash-container">
+        <p class="title">GROUP 1</P>
+            <ul class = 'title'>
+                         <li>Amarachukwu Onuoha(Group captain).</li>
+                         <li>Akinlade Akinola(asst group captain).</li>
+                         <li>Etuk Benjamin.</li>
+                         <li>Madu Clinton.</li>
+                        <li>Ndinwa Philip.</li>
+                         <li>Sammy-Edward.</li>
+                         <li>Babalola Folahan.</li>
+                         <li>Ayalogu Eugene.</li>
+                         <li>Emoefe Kesiena Pearl.</li>
+                         <li> Akpan Abasiono.</li>
+                         <li>Okonkwo Nneamaka.</li>
+                         <li>Adebajo Wonuola.</li>
+                         <li>Oshokha Ethuakhor Omoyemhe</li>
+                         <li>Kalu Clinton</li>
+                         <li>Ekwunife Henry</li>
+                         <li>Udeze Somadina</li>
+                         
+            </ul>
+    </div>
+
+    <button class="button signup" onclick="window.location.href='/auth';">Continue</button>
+</body>
+</html>

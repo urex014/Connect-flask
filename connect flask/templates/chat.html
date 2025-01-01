@@ -9,8 +9,8 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background: linear-gradient(to bottom, #141E30, #243B55); /* Dark blue gradient background */
-            color: white; /* White text */
+            background: linear-gradient(to bottom, #141E30, #243B55);
+            color: white;
         }
 
         .chat-container {
@@ -22,7 +22,6 @@
             box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.5);
         }
 
-        /* Header */
         .chat-header {
             display: flex;
             align-items: center;
@@ -32,57 +31,40 @@
             border-bottom: 1px solid #333;
             font-size: 1.2rem;
             font-weight: bold;
-            position: relative;
         }
 
-        .back-button {
-            background: none;
-            border: none;
-            color: #00AEEF; /* Blue arrow */
-            font-size: 1.5rem;
-            cursor: pointer;
-            margin-right: 10px;
-        }
-
-        /* Messages Container */
         .message-bubbles {
             flex-grow: 1;
             overflow-y: auto;
             padding: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px; /* Spacing between messages */
         }
 
         .bubble {
             padding: 12px 15px;
             margin: 5px 0;
             border-radius: 18px;
-            max-width: 80%; /* Set max-width for messages */
-            word-wrap: break-word; /* Wrap long words */
+            max-width: 80%;
+            word-wrap: break-word;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
 
-        /* Sender's message (right-aligned) */
         .bubble.sender {
-            background-color: #007BFF; /* Blue bubble */
+            background-color: #007BFF;
             color: white;
-            margin-left: auto; /* Align to right */
+            margin-left: auto;
             text-align: left;
             border-bottom-right-radius: 5px;
         }
 
-        /* Recipient's message (left-aligned) */
         .bubble.recipient {
-            background-color: #2F363E; /* Dark gray bubble */
+            background-color: #2F363E;
             color: #ddd;
-            margin-right: auto; /* Align to left */
+            margin-right: auto;
             text-align: left;
             border-bottom-left-radius: 5px;
         }
 
-        /* Message Input Area */
-        .message-form {
+        .message-input {
             display: flex;
             align-items: center;
             background-color: #1C1E24;
@@ -90,7 +72,7 @@
             border-top: 1px solid #333;
         }
 
-        .message-form input[type="text"] {
+        .message-input input[type="text"] {
             flex: 1;
             background-color: #2F363E;
             border: none;
@@ -102,11 +84,7 @@
             margin-right: 10px;
         }
 
-        .message-form input[type="text"]::placeholder {
-            color: #aaa;
-        }
-
-        .message-form button {
+        .message-input button {
             background-color: #007BFF;
             color: white;
             border: none;
@@ -117,125 +95,31 @@
             transition: background-color 0.2s;
         }
 
-        .message-form button:hover {
+        .message-input button:hover {
             background-color: #0056b3;
-        }
-
-        /* Scrollbar Customization */
-        .message-bubbles::-webkit-scrollbar {
-            width: 5px;
-        }
-
-        .message-bubbles::-webkit-scrollbar-thumb {
-            background-color: #444;
-            border-radius: 10px;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .chat-header {
-                font-size: 1rem;
-            }
-
-            .bubble {
-                font-size: 0.9rem;
-            }
-
-            .message-form input[type="text"] {
-                font-size: 0.9rem;
-            }
-
-            .message-form button {
-                font-size: 0.9rem;
-            }
         }
     </style>
 </head>
 <body>
     <div class="chat-container">
-        <!-- Header -->
         <div class="chat-header">
-            <button class="back-button" onclick="window.history.back();">&larr;</button>
             Chat with {{ recipient.username }}
         </div>
 
-        <!-- Chat Bubbles -->
-        <div class="message-bubbles" id="message-bubbles">
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="bubble {{ 'sender' if message.sender_id == current_user.id else 'recipient' }}">
-                        {{ message.content }}
-                    </div>
-                {% endfor %}
-            {% else %}
-                <p style="text-align: center; color: #aaa;">No messages yet. Start a conversation!</p>
-            {% endif %}
+        <div class="message-bubbles">
+            {% for message in messages %}
+            <div class="bubble {{ 'sender' if message.sender_id == current_user.id else 'recipient' }}">
+                {{ message.content }}
+            </div>
+            {% endfor %}
         </div>
 
-        <!-- Message Input -->
-        <form class="message-form" id="message-form">
-            <input type="text" id="message-input" placeholder="Type a message..." required>
-            <button type="submit">Send</button>
-        </form>
+        <div class="message-input">
+            <form action="{{ url_for('chat', user_id=recipient.id) }}" method="POST">
+                <input type="text" name="message" placeholder="Type a message..." required>
+                <button type="submit">Send</button>
+            </form>
+        </div>
     </div>
-
-    <!-- Include Socket.IO -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js"></script>
-    <script>
-        const socket = io.connect("http://localhost:5000");
-
-        // Assuming the user_id and username are passed as variables in your Flask template
-        const userId = {{ current_user.id }};
-        const recipientId = {{ recipient.id }};
-        const recipientUsername = "{{ recipient.username }}";
-
-        // Join the chat room
-        socket.emit('join', { user_id: userId, username: "{{ current_user.username }}" });
-
-        // Listen for new messages from the server
-        socket.on('new_message', function (message) {
-            if (message.sender_id === userId || message.recipient_id === userId) {
-                const messageBubbles = document.getElementById('message-bubbles');
-                const messageBubble = document.createElement('div');
-                messageBubble.classList.add('bubble');
-                messageBubble.classList.add(message.sender_id === userId ? 'sender' : 'recipient');
-                messageBubble.textContent = message.content;
-                messageBubbles.appendChild(messageBubble);
-                messageBubbles.scrollTop = messageBubbles.scrollHeight;  // Scroll to the latest message
-            }
-        });
-
-        // Handle sending new message
-        const messageForm = document.getElementById('message-form');
-        const messageInput = document.getElementById('message-input');
-
-        messageForm.addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            const messageContent = messageInput.value.trim();
-            if (messageContent) {
-                const message = {
-                    sender_id: userId,
-                    recipient_id: recipientId,
-                    content: messageContent,
-                    username: "{{ current_user.username }}"
-                };
-
-                // Emit the message to the server
-                socket.emit('new_message', message);
-
-                // Append the message locally
-                const messageBubbles = document.getElementById('message-bubbles');
-                const messageBubble = document.createElement('div');
-                messageBubble.classList.add('bubble', 'sender');
-                messageBubble.textContent = messageContent;
-                messageBubbles.appendChild(messageBubble);
-                messageBubbles.scrollTop = messageBubbles.scrollHeight;
-
-                // Clear the input field
-                messageInput.value = '';
-            }
-        });
-    </script>
 </body>
 </html>

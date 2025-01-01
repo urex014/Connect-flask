@@ -20,7 +20,7 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-socketio = SocketIO(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # User Model
 class User(UserMixin, db.Model):
@@ -51,6 +51,11 @@ def load_user(user_id):
 @app.route('/')
 def index():
     return render_template('splash.html')
+
+
+@app.route('/splash2.html')
+def splash2():
+    return render_template('splash2.html')
 
 @app.route('/auth')
 def auth():
@@ -133,9 +138,9 @@ def chat_list():
             'profile_photo': user.profile_photo,
             'last_message': last_message.content if last_message else "No messages yet",
         })
-
+    
+    # Render the chat_list.html template with the user data
     return render_template('chat_list.html', users=user_data)
-
 @app.route('/search_users')
 @login_required
 def search_users():
@@ -159,7 +164,8 @@ def search_users():
         for user in users
     ]
 
-    return jsonify(user_data)
+    return jsonify(user_data)  # Return the user data as
+
 
 
 @app.route('/chat/<int:user_id>', methods=['GET', 'POST'])
@@ -168,27 +174,24 @@ def chat(user_id):
     other_user = User.query.get_or_404(user_id)
 
     if request.method == 'POST':
-        content = request.form.get('message', ' ')
-        if content.strip():
+        content = request.form.get('message', '').strip()
+        if content:
+            # Save the message to the database
             new_message = Message(sender_id=current_user.id, recipient_id=user_id, content=content)
             db.session.add(new_message)
             db.session.commit()
 
-            # Emit message using SocketIO
-            socketio.emit('new_message', {
-                'message': content,
-                'sender_id': current_user.id,
-                'recipient_id': user_id,
-                'username': current_user.username,
-                'timestamp': new_message.timestamp.strftime('%Y-%m-%d %H:%M:%S')
-            }, room=str(user_id))
+            # Redirect to refresh the page
+            return redirect(url_for('chat', user_id=user_id))
 
+    # Fetch all messages between the two users
     messages = Message.query.filter(
         ((Message.sender_id == current_user.id) & (Message.recipient_id == user_id)) |
         ((Message.sender_id == user_id) & (Message.recipient_id == current_user.id))
     ).order_by(Message.timestamp).all()
 
     return render_template('chat.html', recipient=other_user, messages=messages)
+
 
 @app.route('/settings')
 @login_required
@@ -231,18 +234,19 @@ def update_profile_photo():
 def on_join(data):
     room = str(data['room'])
     join_room(room)
-    print(f"User has joined room: {room}")
+    print(f" {current_user.username} has joined room: {room}")
 
 @socketio.on('leave_room')
 def on_leave(data):
     room = str(data['room'])
     leave_room(room)
-    print(f"User has left room: {room}")
+    print(f"{current_user.username} has left room: {room}")
 
 @socketio.on('new_message')
 def handle_new_message(data):
     room = str(data['recipient_id'])
     send(data, room=room)
+    socketio.emit('new_message', data, room=room)
     print(f"New message from {data['username']} to room {room}")
 
 @app.route('/logout')
