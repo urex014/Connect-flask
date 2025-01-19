@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings</title>
+    <style>
+        /* Basic styling for settings page */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #333;
+            color: white;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #00AEEF;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            font-size: 1rem;
+            color: #bbb;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            background-color: #444;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        input[type="file"]:hover {
+            background-color: #007bff;
+        }
+        /* Back Arrow Styling */
+.back-arrow {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    font-size: 24px;
+    color: white; /* Light blue color */
+    text-decoration: none;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.back-arrow:hover {
+    color: #007bff; /* Hover effect for the arrow */
+}
+
+    </style>
+</head>
+<body>
+    <h1>Change Profile Picture</h1>
+
+    <form action="{{ url_for('update_profile_photo') }}" method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="profile_photo">Select a new profile photo:</label>
+            <input type="file" name="profile_photo" id="profile_photo" accept="image/*" required>
+        </div>
+        <button type="submit">Upload</button>
+    </form>
+    <!-- Left Arrow for Back Navigation -->
+<a href="{{ url_for('chat_list') }}" class="back-arrow">←</a>
+
+
+
+  
+   
+
+
+</body>
+</html>
