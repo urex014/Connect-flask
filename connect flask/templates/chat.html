@@ -99,6 +99,7 @@
             background-color: #0056b3;
         }
     </style>
+   
 </head>
 <body>
     <div class="chat-container">
@@ -106,7 +107,8 @@
             Chat with {{ recipient.username }}
         </div>
 
-        <div class="message-bubbles">
+        <!-- Chat Bubbles -->
+        <div class="message-bubbles" id="message-bubbles">
             {% for message in messages %}
             <div class="bubble {{ 'sender' if message.sender_id == current_user.id else 'recipient' }}">
                 {{ message.content }}
@@ -114,12 +116,79 @@
             {% endfor %}
         </div>
 
+        <!-- Message Input Area -->
         <div class="message-input">
-            <form action="{{ url_for('chat', user_id=recipient.id) }}" method="POST">
-                <input type="text" name="message" placeholder="Type a message..." required>
+            <form id="message-form" action="{{ url_for('chat', user_id=recipient.id) }}" method="POST">
+                <input type="text" name="message" id="message-input" placeholder="Type a message..." required>
                 <button type="submit">Send</button>
             </form>
         </div>
     </div>
+
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const messageBubbles = document.getElementById('message-bubbles');
+            const messageForm = document.getElementById('message-form');
+            const messageInput = document.getElementById('message-input');
+            const userId = {{ recipient.id }};  // User ID of the recipient
+    
+            // Function to fetch new messages
+            function fetchMessages() {
+                fetch(`/chat/messages/${userId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Clear existing messages
+                        messageBubbles.innerHTML = '';
+    
+                        // Append fetched messages to the chat
+                        data.messages.forEach(message => {
+                            const bubble = document.createElement('div');
+                            bubble.classList.add('bubble', message.type);
+                            bubble.textContent = message.content;
+                            messageBubbles.appendChild(bubble);
+                        });
+    
+                        // Scroll to the latest message
+                        messageBubbles.scrollTop = messageBubbles.scrollHeight;
+                    })
+                    .catch(error => console.error('Error fetching messages:', error));
+            }
+    
+            // Function to send a new message
+            messageForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const content = messageInput.value.trim();
+    
+                if (content) {
+                    fetch(`/chat/${userId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({ message: content })
+                    })
+                        .then(() => {
+                            messageInput.value = ''; // Clear input field
+                            fetchMessages(); // Immediately fetch updated messages
+                        })
+                        .catch(error => console.error('Error sending message:', error));
+                }
+            });
+    
+            // Automatically fetch messages every 2 seconds
+            setInterval(fetchMessages, 2000);
+    
+            // Initial fetch when the page loads
+            fetchMessages();
+        });
+    </script>
+    
+        
+    
+    
 </body>
 </html>

@@ -101,6 +101,7 @@ def login():
 @app.route('/chat_list', methods=['GET', 'POST'])
 @login_required
 def chat_list():
+    
     user_data = []
     query = request.form.get('search', '')
 
@@ -141,20 +142,21 @@ def chat_list():
     
     # Render the chat_list.html template with the user data
     return render_template('chat_list.html', users=user_data)
+from flask import jsonify, request
+from flask_login import login_required, current_user
+# ... other imports
+
 @app.route('/search_users')
 @login_required
 def search_users():
     query = request.args.get('q', '').strip().lower()
-
     if query:
-        # Search users based on the query, excluding the current user
         users = User.query.filter(
             User.username.ilike(f"%{query}%"), User.id != current_user.id
         ).all()
     else:
-        users = []  # If no query is provided, return an empty list
+        users = []
 
-    # Return the list of users as JSON
     user_data = [
         {
             "id": user.id,
@@ -164,7 +166,9 @@ def search_users():
         for user in users
     ]
 
-    return jsonify(user_data)  # Return the user data as
+    return jsonify(user_data) 
+
+    
 
 
 
@@ -182,7 +186,7 @@ def chat(user_id):
             db.session.commit()
 
             # Redirect to refresh the page
-            return redirect(url_for('chat', user_id=user_id))
+            return redirect(url_for('chat', user_id=user_id)) 
 
     # Fetch all messages between the two users
     messages = Message.query.filter(
