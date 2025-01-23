@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom, #141E30, #243B55);
+            color: white;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 600px;
+            margin: auto;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.5);
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background-color: #141E30;
+            border-bottom: 1px solid #333;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .message-bubbles {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .bubble {
+            padding: 12px 15px;
+            margin: 5px 0;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .bubble.sender {
+            background-color: #007BFF;
+            color: white;
+            margin-left: auto;
+            text-align: left;
+            border-bottom-right-radius: 5px;
+        }
+
+        .bubble.recipient {
+            background-color: #2F363E;
+            color: #ddd;
+            margin-right: auto;
+            text-align: left;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message-input {
+            display: flex;
+            align-items: center;
+            background-color: #1C1E24;
+            padding: 10px;
+            border-top: 1px solid #333;
+        }
+
+        .message-input input[type="text"] {
+            flex: 1;
+            background-color: #2F363E;
+            border: none;
+            color: white;
+            padding: 12px 15px;
+            border-radius: 20px;
+            outline: none;
+            font-size: 1rem;
+            margin-right: 10px;
+        }
+
+        .message-input button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+
+        .message-input button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+   
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            Chat with {{ recipient.username }}
+        </div>
+
+        <!-- Chat Bubbles -->
+        <div class="message-bubbles" id="message-bubbles">
+            {% for message in messages %}
+            <div class="bubble {{ 'sender' if message.sender_id == current_user.id else 'recipient' }}">
+                {{ message.content }}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Message Input Area -->
+        <div class="message-input">
+            <form id="message-form" action="{{ url_for('chat', user_id=recipient.id) }}" method="POST">
+                <input type="text" name="message" id="message-input" placeholder="Type a message..." required>
+                <button type="submit">Send</button>
+            </form>
+        </div>
+    </div>
+
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const messageBubbles = document.getElementById('message-bubbles');
+            const messageForm = document.getElementById('message-form');
+            const messageInput = document.getElementById('message-input');
+            const userId = {{ recipient.id }};  // User ID of the recipient
+    
+            // Function to fetch new messages
+            function fetchMessages() {
+                fetch(`/chat/messages/${userId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Clear existing messages
+                        messageBubbles.innerHTML = '';
+    
+                        // Append fetched messages to the chat
+                        data.messages.forEach(message => {
+                            const bubble = document.createElement('div');
+                            bubble.classList.add('bubble', message.type);
+                            bubble.textContent = message.content;
+                            messageBubbles.appendChild(bubble);
+                        });
+    
+                        // Scroll to the latest message(but its not working for sum reason)
+                        messageBubbles.scrollTop = messageBubbles.scrollHeight;
+                    })
+                    .catch(error => console.error('Error fetching messages:', error));
+            }
+    
+            // Function to send a new message
+            messageForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const content = messageInput.value.trim();
+    
+                if (content) {
+                    fetch(`/chat/${userId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({ message: content })
+                    })
+                        .then(() => {
+                            messageInput.value = ''; // Clear input field
+                            fetchMessages(); // Immediately fetch updated messages
+                        })
+                        .catch(error => console.error('Error sending message:', error));
+                }
+            });
+    
+            // Automatically fetch messages every 2 seconds
+            setInterval(fetchMessages, 2000);
+    
+            // Initial fetch when the page loads
+            fetchMessages();
+        });
+    </script>
+    
+        
+    
+    
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #000; /* Black background */
+            color: #fff; /* White text */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .signup-container {
+            text-align: center;
+            width: 350px;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 32px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background-color: #ccc; /* Light grey input background */
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            color: #000;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #00bcd4; /* Cyan Blue Button */
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0199ad; /* Slightly darker cyan for hover */
+        }
+
+        p {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #ccc; /* Light grey text */
+        }
+
+        a {
+            text-decoration: none;
+            color: #00bcd4; /* Cyan blue link */
+            font-weight: bold;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="signup-container">
+        <h1>Sign Up</h1>
+        <form method="POST">
+            {% if error %}
+            <p style="color: red;">{{ error }}</p>
+            {% endif %}
+            <input type="text" name="username" placeholder="username" required>
+            <input type="text" name="email" placeholder="Email" required>
+            <input type="text" name="phone" placeholder="Phone Number" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <input type="password" name="confirm_password" placeholder="Confirm Password" required>
+            <button type="submit">Sign Up</button>
+            {%if error%}
+            <p style="color: red;">{{error}}</p>
+            {%endif%}
+        </form>
+        <p>Already have an account? <a href="/login">Log In</a></p>
+    </div>
+</body>
+</html>
