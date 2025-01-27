@@ -1,0 +1,323 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat List</title>
+   
+    <style>
+        
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: #000; /* Black background */
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        /* Container */
+        .container {
+            width: 100%;
+            min-width: 577px;
+            max-width:992px;
+            background-color: #000;
+            height: 100%;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            margin: 0;
+        }
+        
+        /* Search Icon and Input */
+        .search-container {
+            position: relative;
+        }
+        
+        .search-icon {
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .search-bar {
+            display: none; /* Initially hidden */
+            width: 100%;
+            max-width: 200px;
+            padding: 5px 10px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            background-color: #222;
+            color: white;
+            outline: none;
+        }
+        
+        .search-bar:focus {
+            border: 1px solid #007bff;
+        }
+        
+        /* Chat List */
+        .chat-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .chat-list li {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            background-color: #222;
+        }
+        
+        /* Remove text decoration from links */
+        .chat-list a {
+            text-decoration: none; /* Removes underline */
+            color: white; /* Keeps text color white */
+            display: flex;
+            align-items: center; /* Align items vertically in the center */
+        }
+        
+        /* Profile photo styling */
+        .chat-list img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 10px; /* Adds spacing between the photo and the username */
+        }
+        
+        /* Chat info container */
+        .chat-list .chat-info {
+            display: flex;
+            align-items: center;
+            flex: 1; /* Make the profile and text share the available space */
+        }
+        
+        /* Username and Message Preview container */
+        .chat-list .message-details {
+            display: flex;
+            flex-direction: column; /* Stack the username and message preview vertically */
+        }
+        
+        /* Username style */
+        .chat-list .username {
+            font-weight: bold;
+            font-size: 1rem;
+            margin: 0;
+        }
+        
+        /* Message preview style */
+        .chat-list .message-preview {
+            font-size: 0.9rem;
+            color: #aaa;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Timestamp style */
+        .chat-list .timestamp {
+            font-size: 0.8rem;
+            color: #666;
+            margin-left: 10px;
+        }
+
+        /* No users found message */
+        .no-users-message {
+            color: #aaa;
+            text-align: center;
+            font-size: 1.2rem;
+            margin-top: 20px;
+        }
+        
+        /* Fixed Floating Settings Icon */
+        .settings-icon {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 50%;
+            padding: 15px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+            text-decoration: none;
+        }
+        .back-button{
+            text-decoration: none;
+            padding-right: 40px;
+            border-radius: 5px;
+
+        }
+        .back-button:visited{
+            text-decoration: none;
+        }
+        .back-button:hover{
+            background-color: black;
+        }
+    </style>    
+</head>
+<body>
+    <div class="container">
+        <!-- Header containing search icon and other header stuff  -->
+        <span class="back-button" id="back-button">🔙</span>
+        <div class="header">
+            <h1>{{ current_user.username }}</h1>
+            <!-- Search Container -->
+            <div class="search-container">
+                <!-- Search Icon -->
+                <span class="search-icon" id="search-icon">🔍</span>
+                <!-- Search Bar -->
+                <input type="text" class="search-bar" id="search-bar" placeholder="Search...">
+            </div>
+        </div>
+        
+
+        <!-- the way chats appear under each other -->
+        <ul class="chat-list" id="chat-list">
+            {% if users %}
+                {% for user in users %}
+                <li data-username="{{ user.username }}">
+                    <a href="{{ url_for('chat', user_id=user.id) }}" class="chat-link">
+                        <div class="chat-info">
+                            <!-- Profile Photo shii -->
+                            <img src="{{ url_for('static', filename='uploads/' + user.profile_photo) }}? v={{ user.updated_at }}" class="profile-photo">
+                            <!-- Username  and message under the username  -->
+                            <div class="message-details">
+                                <p class="username">{{ user.username }}</p>
+                                <p class="message-preview">
+                                    {{ user.last_message[:50] }}{% if user.last_message|length > 50 %}...{% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <span class="timestamp">9:00</span>
+                    </a>
+                </li>
+                {% endfor %}
+            {% else %}
+                <p class="no-users-message">No messages yet. Use the search button to search for users to send messages to.</p>
+            {% endif %}
+        </ul>
+
+        <p id="no-users-found" class="no-users-message" style="display: none;">No users found.</p> <!-- Hidden message -->
+    </div>
+
+    <!-- Floating Settings Icon -->
+    <a href="{{ url_for('settings') }}" class="settings-icon">⚙️</a>
+
+    <!-- JavaScript -->
+     <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchIcon = document.getElementById('search-icon');
+        const backbutton = document.getElementById('back-button');
+        const searchBar = document.getElementById('search-bar');
+        const chatList = document.getElementById('chat-list');
+        const noUsersFoundMessage = document.getElementById('no-users-found');
+
+
+        backbutton.innerHTML = '<a href="/login">🔙</a>'
+
+
+    
+        // Show search bar when clicking the search icon
+        searchIcon.addEventListener('click', function () {
+            searchIcon.style.display = 'none'; // Hide the search icon
+            searchBar.style.display = 'block'; // Show the search bar
+            searchBar.focus(); // Focus the search bar
+        });
+    
+        // search when enter is pressed 
+        searchBar.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // since form submission=reload, prevent form submission
+                const query = searchBar.value.trim().toLowerCase();
+    
+                if (query) {
+                    // using ajax for search functionality
+                    fetch(`/search_users?q=${query}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            chatList.innerHTML = ''; // Clear the chat list
+                            if (data.length === 0) {
+                                noUsersFoundMessage.style.display = 'block'; // Show No users found when shit dosent add up in db
+                            } else {
+                                noUsersFoundMessage.style.display = 'none'; // Hidethe no users found when search ar input == db
+                                data.forEach(user => {
+                                    const li = document.createElement('li');
+                                    li.innerHTML = `
+                                        <a href="/chat/${user.id}" class="chat-link">
+                                            <div class="chat-info">
+                                                <img src="/static/uploads/${user.profile_photo}" alt="Profile Picture" class="profile-photo">
+                                                <div class="message-details">
+                                                    <p class="username">${user.username}</p>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    `;
+                                    chatList.appendChild(li);
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching users:', error);
+                        });
+                } else {
+                    // default chat list. when there is no search, show all the users 
+                    fetch('/chat_list')
+                        .then(response => response.json())
+                        .then(data => {
+                            chatList.innerHTML = '';  // Clear list
+                            if (data.length === 0) {
+                                noUsersFoundMessage.style.display = 'block'; //show no users 
+                            } else {
+                                noUsersFoundMessage.style.display = 'none'; //hisde no users
+                                data.forEach(user => {
+                                    const li = document.createElement('li');
+                                    li.innerHTML = `
+                                        <a href="/chat/${user.id}" class="chat-link">
+                                            <div class="chat-info">
+                                                <img src="/static/uploads/${user.profile_photo}" alt="Profile Picture" class="profile-photo">
+                                                <div class="message-details">
+                                                    <p class="username">${user.username}</p>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    `;
+                                    chatList.appendChild(li);
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching users:', error);
+                        });
+                }
+            }
+        });
+    });
+</script>
+    
+    
+    
+    
+</body>
+</html>
