@@ -6,11 +6,7 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 from flask_socketio import SocketIO, send, join_room, leave_room
 import os
-import os
 
-
-
-# Initialize Flask app and extensions
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key_here'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
@@ -18,24 +14,17 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
-
-# Initialize extensions to start the sqlite and websocket when app.py is initiated
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# User Model
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
     profile_photo = db.Column(db.String(150), default='default.jpg')
-    
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Message Model
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -54,7 +43,6 @@ def load_user(user_id):
 @app.route('/')
 def index():
     return render_template('splash.html')
-
 
 @app.route('/splash2.html')
 def splash2():
@@ -104,14 +92,12 @@ def login():
 @app.route('/chat_list', methods=['GET', 'POST'])
 @login_required
 def chat_list():
-    
     user_data = []
     query = request.form.get('search', '')
 
     if query:
         users = User.query.filter(User.username.ilike(f"%{query}%"), User.id != current_user.id).all()
     else:
-        # Fetch users who have exchanged messages with current user
         subquery = db.session.query(
             db.func.max(Message.timestamp).label('latest_timestamp'),
             db.case(
@@ -143,55 +129,12 @@ def chat_list():
             'last_message': last_message.content if last_message else "No messages yet",
         })
     
-    # Render the chat_list.html template with the user data
     return render_template('chat_list.html', users=user_data)
-from flask import jsonify, request
-from flask_login import login_required, current_user
-# ... other imports
 
-@app.route('/search_users')
-@login_required
-def search_users():
-    query = request.args.get('q', '').strip().lower()
-    if query:
-        users = User.query.filter(
-            User.username.ilike(f"%{query}%"), User.id != current_user.id
-        ).all()
-    else:
-        users = []
-
-    user_data = [
-        {
-            "id": user.id,
-            "username": user.username,
-            "profile_photo": user.profile_photo,
-        }
-        for user in users
-    ]
-
-    return jsonify(user_data) 
-
-    
-
-
-
-@app.route('/chat/<int:user_id>', methods=['GET', 'POST'])
+@app.route('/chat/<int:user_id>')
 @login_required
 def chat(user_id):
     other_user = User.query.get_or_404(user_id)
-
-    if request.method == 'POST':
-        content = request.form.get('message', '').strip()
-        if content:
-            # Save the message to the database
-            new_message = Message(sender_id=current_user.id, recipient_id=user_id, content=content)
-            db.session.add(new_message)
-            db.session.commit()
-
-            # Redirect to refresh the page
-            return redirect(url_for('chat', user_id=user_id)) 
-
-    # Fetch all messages between the two users
     messages = Message.query.filter(
         ((Message.sender_id == current_user.id) & (Message.recipient_id == user_id)) |
         ((Message.sender_id == user_id) & (Message.recipient_id == current_user.id))
@@ -199,64 +142,39 @@ def chat(user_id):
 
     return render_template('chat.html', recipient=other_user, messages=messages)
 
-
-@app.route('/settings')
-@login_required
-def settings():
-    return render_template('settings.html')
-
-@app.route('/update_profile_photo', methods=['POST'])
-@login_required
-def update_profile_photo():
-    if 'file' not in request.files:
-        flash('No file part')
-        return redirect(url_for('settings'))
-    
-    file = request.files['file']
-    
-    if file.filename == '':
-        flash('No selected file')
-        return redirect(url_for('settings'))
-    
-    if file and allowed_file(file.filename):
-        # Secure the filename and save it to the upload folder
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        
-        # Save the file
-        file.save(filepath)
-
-        # Update the current user's profile_photo field in the database
-        current_user.profile_photo = filename
-        db.session.commit()
-        updated_user = User.query.get(current_user.id)
-        print(updated_user.profile_photo)
-
-        flash('Profile photo updated successfully!')
-        return redirect(url_for('settings'))
-    
-    flash('Invalid file type. Please upload an image.')
-    return redirect(url_for('settings'))
-
-
-@socketio.on('join_room')
-def on_join(data):
-    room = str(data['room'])
+# WebSocket handlers
+@socketio.on('join')
+def handle_join(data):
+    room = data['room']
     join_room(room)
-    print(f" {current_user.username} has joined room: {room}")
+    print(f"User {current_user.username} joined room {room}")
 
-@socketio.on('leave_room')
-def on_leave(data):
-    room = str(data['room'])
-    leave_room(room)
-    print(f"{current_user.username} has left room: {room}")
-
-@socketio.on('new_message')
-def handle_new_message(data):
-    room = str(data['recipient_id'])
-    send(data, room=room)
-    socketio.emit('new_message', data, room=room)
-    print(f"New message from {data['username']} to room {room}")
+@socketio.on('send_message')
+def handle_send_message(data):
+    if not current_user.is_authenticated:
+        return
+    
+    content = data['content'].strip()
+    recipient_id = data['recipient_id']
+    room = data['room']
+    
+    if content:
+        new_message = Message(
+            sender_id=current_user.id,
+            recipient_id=recipient_id,
+            content=content
+        )
+        db.session.add(new_message)
+        db.session.commit()
+        
+        message_data = {
+            'content': content,
+            'sender_id': current_user.id,
+            'recipient_id': recipient_id,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
+        socketio.emit('new_message', message_data, room=room)
 
 @app.route('/logout')
 @login_required
@@ -265,7 +183,6 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
     with app.app_context():
         db.create_all()
-    socketio.run(app, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)

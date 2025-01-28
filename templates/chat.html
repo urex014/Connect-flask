@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -37,6 +38,9 @@
             flex-grow: 1;
             overflow-y: auto;
             padding: 10px;
+            scroll-behavior: smooth;
+            max-height: 70vh;
+            height: 100%;
         }
 
         .bubble {
@@ -119,79 +123,63 @@
 
         <!-- Message Input Area -->
         <div class="message-input">
-            <form id="message-form" action="{{ url_for('chat', user_id=recipient.id) }}" method="POST">
-                <input type="text" name="message" id="message-input" placeholder="Type a message..." required>
-                <button type="submit">Send</button>
-            </form>
+            <input type="text" name="message" id="message-input" placeholder="Type a message...">
+            <button id="send-button">Send</button>
         </div>
     </div>
+        
 
     
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const messageBubbles = document.getElementById('message-bubbles');
-            const messageForm = document.getElementById('message-form');
-            const messageInput = document.getElementById('message-input');
-            const back-button = document.getElementById('back-button');
-            const userId = {{ recipient.id }};  // User ID of the recipient
-
-            back-button.innerHTML='<a href="/chat_list">🔙</a>';
+        <script>
+            const socket = io();
+            const userId = {{ current_user.id }};
+            const recipientId = {{ recipient.id }};
+            const roomId = [userId, recipientId].sort().join('-');
     
-            // Function to fetch new messages
-            function fetchMessages() {
-                fetch(`/chat/messages/${userId}`)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! Status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        // Clear existing messages
-                        messageBubbles.innerHTML = '';
+            document.addEventListener('DOMContentLoaded', () => {
+                const messageBubbles = document.getElementById('message-bubbles');
+                const messageInput = document.getElementById('message-input');
+                const sendButton = document.getElementById('send-button');
     
-                        // Append fetched messages to the chat
-                        data.messages.forEach(message => {
-                            const bubble = document.createElement('div');
-                            bubble.classList.add('bubble', message.type);
-                            bubble.textContent = message.content;
-                            messageBubbles.appendChild(bubble);
+                // Join the chat room
+                socket.emit('join', { room: roomId });
+    
+                // Handle incoming messages
+                socket.on('new_message', (data) => {
+                    const bubble = document.createElement('div');
+                    bubble.classList.add('bubble', data.sender_id === userId ? 'sender' : 'recipient');
+                    bubble.textContent = data.content;
+                    messageBubbles.appendChild(bubble);
+                    
+                    // Auto-scroll to bottom
+                    messageBubbles.scrollTo({
+                        top: messageBubbles.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                });
+    
+                // Send message handler
+                sendButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const content = messageInput.value.trim();
+                    if (content) {
+                        socket.emit('send_message', {
+                            content: content,
+                            recipient_id: recipientId,
+                            room: roomId
                         });
+                        messageInput.value = '';
+                    }
+                });
     
-                        // Scroll to the latest message(but its not working for sum reason)
-                        messageBubbles.scrollTop = messageBubbles.scrollHeight;
-                    })
-                    .catch(error => console.error('Error fetching messages:', error));
-            }
-    
-            // Function to send a new message
-            messageForm.addEventListener('submit', function (e) {
-                e.preventDefault();
-                const content = messageInput.value.trim();
-    
-                if (content) {
-                    fetch(`/chat/${userId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: new URLSearchParams({ message: content })
-                    })
-                        .then(() => {
-                            messageInput.value = ''; // Clear input field
-                            fetchMessages(); // Immediately fetch updated messages
-                            location.reload();
-                        })
-                        .catch(error => console.error('Error sending message:', error));
-                }
+                // Enter key support
+                messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        sendButton.click();
+                    }
+                });
             });
-    
-            // Automatically fetch messages every 2 seconds
-            setInterval(fetchMessages, 2000);
-    
-            // Initial fetch when the page loads
-            fetchMessages();
-        });
-    </script>
-    
+        </script>
         
     
     

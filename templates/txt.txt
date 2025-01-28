@@ -1,0 +1,188 @@
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
+from werkzeug.utils import secure_filename
+from flask_socketio import SocketIO, send, join_room, leave_room
+import os
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your_secret_key_here'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
+    profile_photo = db.Column(db.String(150), default='default.jpg')
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.String(1000), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')
+    recipient = db.relationship('User', foreign_keys=[recipient_id], backref='received_messages')
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# Routes
+@app.route('/')
+def index():
+    return render_template('splash.html')
+
+@app.route('/splash2.html')
+def splash2():
+    return render_template('splash2.html')
+
+@app.route('/auth')
+def auth():
+    return render_template('auth.html')
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+
+        if password != confirm_password:
+            return render_template('signup.html', error="Passwords do not match")
+
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            return render_template('signup.html', error="This username is already taken")
+
+        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+        new_user = User(username=username, password=hashed_password)
+        db.session.add(new_user)
+        db.session.commit()
+        return redirect(url_for('login'))
+
+    return render_template('signup.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password, password):
+            login_user(user)
+            return redirect(url_for('chat_list'))
+
+        return render_template('login.html', error="Invalid credentials")
+
+    return render_template('login.html')
+
+@app.route('/chat_list', methods=['GET', 'POST'])
+@login_required
+def chat_list():
+    user_data = []
+    query = request.form.get('search', '')
+
+    if query:
+        users = User.query.filter(User.username.ilike(f"%{query}%"), User.id != current_user.id).all()
+    else:
+        subquery = db.session.query(
+            db.func.max(Message.timestamp).label('latest_timestamp'),
+            db.case(
+                (Message.sender_id == current_user.id, Message.recipient_id),
+                else_=Message.sender_id
+            ).label('user_id')
+        ).filter(
+            (Message.sender_id == current_user.id) | (Message.recipient_id == current_user.id)
+        ).group_by(db.case(
+            (Message.sender_id == current_user.id, Message.recipient_id),
+            else_=Message.sender_id
+        )).subquery()
+
+        users = db.session.query(User, subquery.c.latest_timestamp).join(
+            subquery, User.id == subquery.c.user_id
+        ).order_by(subquery.c.latest_timestamp.desc()).all()
+
+    for user_entry in users:
+        user = user_entry if isinstance(user_entry, User) else user_entry[0]
+        last_message = Message.query.filter(
+            ((Message.sender_id == current_user.id) & (Message.recipient_id == user.id)) |
+            ((Message.sender_id == user.id) & (Message.recipient_id == current_user.id))
+        ).order_by(Message.timestamp.desc()).first()
+
+        user_data.append({
+            'id': user.id,
+            'username': user.username,
+            'profile_photo': user.profile_photo,
+            'last_message': last_message.content if last_message else "No messages yet",
+        })
+    
+    return render_template('chat_list.html', users=user_data)
+
+@app.route('/chat/<int:user_id>')
+@login_required
+def chat(user_id):
+    other_user = User.query.get_or_404(user_id)
+    messages = Message.query.filter(
+        ((Message.sender_id == current_user.id) & (Message.recipient_id == user_id)) |
+        ((Message.sender_id == user_id) & (Message.recipient_id == current_user.id))
+    ).order_by(Message.timestamp).all()
+
+    return render_template('chat.html', recipient=other_user, messages=messages)
+
+# WebSocket handlers
+@socketio.on('join')
+def handle_join(data):
+    room = data['room']
+    join_room(room)
+    print(f"User {current_user.username} joined room {room}")
+
+@socketio.on('send_message')
+def handle_send_message(data):
+    if not current_user.is_authenticated:
+        return
+    
+    content = data['content'].strip()
+    recipient_id = data['recipient_id']
+    room = data['room']
+    
+    if content:
+        new_message = Message(
+            sender_id=current_user.id,
+            recipient_id=recipient_id,
+            content=content
+        )
+        db.session.add(new_message)
+        db.session.commit()
+        
+        message_data = {
+            'content': content,
+            'sender_id': current_user.id,
+            'recipient_id': recipient_id,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
+        socketio.emit('new_message', message_data, room=room)
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
