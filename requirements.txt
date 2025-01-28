@@ -89,8 +89,6 @@ python-engineio==4.10.1
 python-socketio==5.11.4
 pyttsx3==2.98
 pytz==2024.1
-pywin32==306
-pywin32-ctypes==0.2.3
 PyYAML==6.0.2
 regex==2024.7.24
 requests==2.32.3
@@ -116,3 +114,4 @@ waitress==3.0.2
 websocket-client==1.8.0
 Werkzeug==3.0.4
 wsproto==1.2.0
+
