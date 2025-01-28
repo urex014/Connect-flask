@@ -8,8 +8,7 @@ from flask_socketio import SocketIO, send, join_room, leave_room
 import os
 import os
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 # Initialize Flask app and extensions
 app = Flask(__name__)
@@ -18,6 +17,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
 
 
 # Initialize extensions to start the sqlite and websocket when app.py is initiated
@@ -268,4 +269,5 @@ def logout():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
     socketio.run(app, debug=True)
