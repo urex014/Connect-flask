@@ -6,6 +6,10 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 from flask_socketio import SocketIO, send, join_room, leave_room
 import os
+import os
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
 
 # Initialize Flask app and extensions
 app = Flask(__name__)
